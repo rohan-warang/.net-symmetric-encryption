@@ -30,10 +30,10 @@ namespace CryptoUtil.Encryptors
 
         public string Encrypt(string input, string password)
         {
-            byte[] encyptedInput;
+            byte[] iv = cryptoByteGenerator.Generate(cryptoSettings.IvSize);
             byte[] salt = cryptoByteGenerator.Generate(cryptoSettings.SaltSize);
             byte[] key = keyGenerator.Generate(password, salt);
-            byte[] iv = cryptoByteGenerator.Generate(cryptoSettings.IvSize);
+            byte[] encyptedInput;
 
             using (var algorithm = algorithmFactory.Build())
             {
