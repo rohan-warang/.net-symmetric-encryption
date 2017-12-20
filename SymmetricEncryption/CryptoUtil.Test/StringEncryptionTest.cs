@@ -29,7 +29,7 @@ namespace CryptoUtil.Test
             encryptor = new StringEncryptor(algorithmFactory, settings);
             decryptor = new StringDecryptor(algorithmFactory, settings);
         }
-
+        
         [Test]
         public void EncryptSameInputProducesDifferentOutputs()
         {
@@ -52,6 +52,18 @@ namespace CryptoUtil.Test
             var decryptedString = decryptor.Decrypt(encryptedString, password);
 
             Assert.AreEqual(decryptedString, inputString);
+        }
+
+        [Test]
+        public void DecryptionFailsIfPasswordDoesNotMatch()
+        {
+            const string inputString = "Test String";
+            const string password1 = "P@s5w0rd1";
+            const string password2 = "P@s5w0rd2";
+
+            var encryptedString = encryptor.Encrypt(inputString, password1);
+
+            Assert.Throws<CryptographicException>(() => decryptor.Decrypt(encryptedString, password2));
         }
     }
 }
