@@ -1,6 +1,6 @@
 ﻿using CryptoUtil.Algorithms;
-using CryptoUtil.KeyGenerators;
 using CryptoUtil.Settings;
+using System;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -10,31 +10,33 @@ namespace CryptoUtil.Decryptors
 {
     public class StringDecryptor : IDecryptor<string, string>
     {
-        private readonly ICryptoSettings cryptoSettings;
         private readonly IAlgorithmFactory algorithmFactory;
-        private readonly IKeyGenerator keyGenerator;
+        private readonly ICryptoSettings settings;
 
-        public StringDecryptor(
-            ICryptoSettings cryptoSettings,
-            IAlgorithmFactory algorithmFactory,
-            IKeyGenerator keyGenerator)
+        public StringDecryptor(IAlgorithmFactory algorithmFactory, ICryptoSettings settings)
         {
-            this.cryptoSettings = cryptoSettings;
+            this.settings = settings;
             this.algorithmFactory = algorithmFactory;
-            this.keyGenerator = keyGenerator;
         }
 
-        public string Encrypt(string input, string password)
+        public string Decrypt(string input, string password)
         {
-            byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-            byte[] iv = inputBytes.Take(cryptoSettings.IvSize).ToArray();
-            byte[] salt = inputBytes.Skip(cryptoSettings.IvSize).Take(cryptoSettings.SaltSize).ToArray(); 
-            byte[] key = keyGenerator.Generate(password, salt);
-            byte[] encyptedInput = inputBytes.Skip(cryptoSettings.IvSize + cryptoSettings.SaltSize).ToArray();
+            byte[] inputBytes = Convert.FromBase64String(input);
+
+            // Split iv, salt and encrypted data from the input
+            byte[] iv = inputBytes.Take(settings.IvSize).ToArray();
+            byte[] salt = inputBytes.Skip(settings.IvSize).Take(settings.SaltSize).ToArray(); 
+            byte[] encyptedInput = inputBytes.Skip(settings.IvSize + settings.SaltSize).ToArray();
+
+            // Generate key for decryption
+            byte[] key = new Rfc2898DeriveBytes(password, salt, 100).GetBytes(settings.KeySize);
 
             using (var algorithm = algorithmFactory.Build())
             {
-                var decryptor = algorithm.CreateDecryptor(key, iv);
+                algorithm.IV = iv;
+                algorithm.Key = key;
+
+                var decryptor = algorithm.CreateDecryptor();
 
                 using (var outputStream = new MemoryStream(encyptedInput))
                 {

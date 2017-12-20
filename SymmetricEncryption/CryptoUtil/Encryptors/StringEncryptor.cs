@@ -1,7 +1,6 @@
 ﻿using CryptoUtil.Algorithms;
-using CryptoUtil.CryptoByteGenerators;
-using CryptoUtil.KeyGenerators;
 using CryptoUtil.Settings;
+using System;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -11,33 +10,37 @@ namespace CryptoUtil.Encryptors
 {
     public class StringEncryptor : IEncryptor<string, string>
     {
-        private readonly ICryptoSettings cryptoSettings;
         private readonly IAlgorithmFactory algorithmFactory;
-        private readonly IKeyGenerator keyGenerator;
-        private readonly ICryptoByteGenerator cryptoByteGenerator;
+        private readonly ICryptoSettings settings;
 
-        public StringEncryptor(
-            ICryptoSettings cryptoSettings,
-            IAlgorithmFactory algorithmFactory,
-            IKeyGenerator keyGenerator,
-            ICryptoByteGenerator cryptoByteGenerator)
+        public StringEncryptor(IAlgorithmFactory algorithmFactory, ICryptoSettings settings)
         {
-            this.cryptoSettings = cryptoSettings;
+            this.settings = settings;
             this.algorithmFactory = algorithmFactory;
-            this.keyGenerator = keyGenerator;
-            this.cryptoByteGenerator = cryptoByteGenerator;
         }
 
         public string Encrypt(string input, string password)
         {
-            byte[] iv = cryptoByteGenerator.Generate(cryptoSettings.IvSize);
-            byte[] salt = cryptoByteGenerator.Generate(cryptoSettings.SaltSize);
-            byte[] key = keyGenerator.Generate(password, salt);
-            byte[] encyptedInput;
+            byte[] iv = new byte[settings.IvSize];
+            byte[] salt = new byte[settings.SaltSize];
+            
+            // Generate random iv and salt
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                rng.GetBytes(iv);
+                rng.GetBytes(salt);
+            }
 
+            // Generate key for decryption
+            byte[] key = new Rfc2898DeriveBytes(password, salt, 100).GetBytes(settings.KeySize);
+
+            byte[] encyptedInput;
             using (var algorithm = algorithmFactory.Build())
             {
-                var encryptor = algorithm.CreateEncryptor(key, iv);
+                algorithm.IV = iv;
+                algorithm.Key = key;
+
+                var encryptor = algorithm.CreateEncryptor();
 
                 using (MemoryStream outputStream = new MemoryStream())
                 {
@@ -55,7 +58,7 @@ namespace CryptoUtil.Encryptors
 
             // Concat iv + salt + encrypted input
             var output = iv.Concat(salt.Concat(encyptedInput)).ToArray();
-            return Encoding.UTF8.GetString(output);
+            return Convert.ToBase64String(output);
         }
     }
 }

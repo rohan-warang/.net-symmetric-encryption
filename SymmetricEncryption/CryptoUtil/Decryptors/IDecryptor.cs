@@ -3,6 +3,6 @@ namespace CryptoUtil.Decryptors
 {
     public interface IDecryptor<in Tin, out Tout>
     {
-        Tout Encrypt(Tin input, string password);
+        Tout Decrypt(Tin input, string password);
     }
 }
