@@ -3,7 +3,6 @@ using CryptoUtil.Decryptors;
 using CryptoUtil.Encryptors;
 using CryptoUtil.Settings;
 using NUnit.Framework;
-using System;
 using System.Security.Cryptography;
 
 namespace CryptoUtil.Test
@@ -32,16 +31,25 @@ namespace CryptoUtil.Test
         }
 
         [Test]
+        public void EncryptSameInputProducesDifferentOutputs()
+        {
+            const string inputString = "Test String";
+            const string password = "P@s5w0rd";
+
+            var encryptedString1 = encryptor.Encrypt(inputString, password);
+            var encryptedString2 = encryptor.Encrypt(inputString, password);
+
+            Assert.AreNotEqual(encryptedString1, encryptedString2);
+        }
+
+        [Test]
         public void DecryptedOutputStringMatchesInputString()
         {
             const string inputString = "Test String";
             const string password = "P@s5w0rd";
 
             var encryptedString = encryptor.Encrypt(inputString, password);
-            Console.WriteLine("Encrypted String: {0}", encryptedString);
-
             var decryptedString = decryptor.Decrypt(encryptedString, password);
-            Console.WriteLine("Decrypted String: {0}", decryptedString);
 
             Assert.AreEqual(decryptedString, inputString);
         }
